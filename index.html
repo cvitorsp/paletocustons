@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Serviços - Design PRO</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Estilização base e fundo gradiente animado */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(-45deg, #020617, #111827, #030712, #1e293b);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: #e5e7eb;
+            overflow: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* Estilização dos campos de formulário */
+        .form-input, .form-select {
+            background-color: rgba(31, 41, 55, 0.5); /* Fundo semi-transparente */
+            border: 1px solid #4b5563;
+            color: #d1d5db;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #10b981;
+            background-color: rgba(55, 65, 81, 0.7);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.4);
+        }
+        
+        /* Estilização do scrollbar */
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb {
+            background-color: #10b981;
+            border-radius: 10px;
+            border: 2px solid #1f2937;
+        }
+        ::-webkit-scrollbar-thumb:hover { background-color: #059669; }
+
+        /* --- TELA DE CARREGAMENTO AVANÇADA --- */
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background-color: #030712;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.8s ease-in-out, visibility 0.8s;
+        }
+        #loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+        .logo-container {
+            position: relative;
+            animation: fadeIn 1s ease-out;
+        }
+        .logo-container img {
+            height: 7rem; /* 112px */
+            width: 7rem; /* 112px */
+        }
+        .logo-container::after {
+            content: '';
+            position: absolute;
+            top: -10%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981, 0 0 20px #10b981;
+            animation: scan 2.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes scan {
+            0% { top: -10%; opacity: 0; }
+            20%, 80% { opacity: 1; }
+            100% { top: 110%; opacity: 0; }
+        }
+        #progress-bar-container {
+            width: 150px;
+            height: 4px;
+            background-color: #1f2937;
+            border-radius: 2px;
+            margin-top: 2rem;
+            overflow: hidden;
+        }
+        #progress-bar {
+            width: 0;
+            height: 100%;
+            background-color: #10b981;
+            border-radius: 2px;
+            transition: width 2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* --- CONTAINER PRINCIPAL E CARD COM EFEITO DE BORDA --- */
+        #app-container {
+            opacity: 0;
+            transition: opacity 1s ease-in;
+        }
+        #app-container.visible {
+            opacity: 1;
+        }
+        .main-card {
+            background: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        .main-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(145deg, rgba(16, 185, 129, 0.3), rgba(255,255,255,0) 50%);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            opacity: 0;
+        }
+        .main-card:hover::before {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- TELA DE CARREGAMENTO -->
+    <div id="loading-screen">
+        <div class="logo-container">
+            <img src="https://i.imgur.com/SfAhYWY.png" alt="Logo">
+        </div>
+        <div id="progress-bar-container">
+            <div id="progress-bar"></div>
+        </div>
+    </div>
+
+    <!-- CONTAINER DA APLICAÇÃO -->
+    <div id="app-container" class="min-h-screen flex flex-col items-center justify-center p-4">
+        
+        <main class="main-card w-full max-w-4xl p-6 sm:p-8 rounded-2xl shadow-2xl">
+            <!-- Cabeçalho -->
+            <header class="flex items-center gap-4 mb-8">
+                <img src="https://i.imgur.com/SfAhYWY.png" alt="Logo" class="h-14 w-14 object-contain">
+                <div>
+                    <h1 class="text-3xl sm:text-4xl font-bold text-white">Calculadora de Serviços</h1>
+                    <p class="text-md text-gray-400">Orçamentos rápidos e precisos.</p>
+                </div>
+            </header>
+
+            <!-- Seção de Dados -->
+            <section id="dados-mecanico">
+                <h2 class="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-2">Informações Gerais</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input type="text" id="nomeMecanico" placeholder="Nome do Mecânico" class="form-input w-full rounded-lg p-2.5">
+                    <input type="text" id="passaporteMecanico" placeholder="Passaporte" class="form-input w-full rounded-lg p-2.5">
+                    <input type="text" id="empresaParceira" placeholder="Empresa Parceira (Opcional)" class="form-input w-full rounded-lg p-2.5">
+                </div>
+            </section>
+
+            <!-- Seção de Serviços -->
+            <section id="servicos" class="mt-8">
+                <h2 class="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-2">Itens e Serviços</h2>
+                <div id="camposDinamicos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4"></div>
+            </section>
+            
+            <!-- Opções e Ações -->
+            <section id="opcoes" class="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+                 <button id="btnDescontoParceiro" type="button" class="w-full sm:w-auto px-6 py-2.5 rounded-lg font-semibold text-white bg-gray-700 hover:bg-gray-600 transition-all duration-300">
+                    Desconto Parceiro: OFF
+                </button>
+                <button onclick="calcularEGerarResumo()" class="w-full sm:w-auto px-8 py-3 rounded-lg font-bold text-white bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 transition-all duration-300 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transform hover:scale-105">
+                    Calcular e Gerar Resumo
+                </button>
+            </section>
+
+            <!-- Resultados e Resumo -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+                <section id="resultados" class="bg-gray-800/50 p-6 rounded-xl border border-gray-700">
+                    <h2 class="text-xl font-semibold text-white mb-4">Resultados</h2>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-300">Total para o Cliente:</span>
+                            <span id="total" class="text-2xl font-bold text-emerald-400">R$ 0,00</span>
+                        </div>
+                        <div class="flex justify-between items-center border-t border-gray-600 pt-4 mt-4">
+                            <span class="text-gray-300">Valor para a Mecânica (20%):</span>
+                            <span id="valorMecanica" class="text-xl font-semibold text-amber-400">R$ 0,00</span>
+                        </div>
+                    </div>
+                </section>
+                <section id="resumo">
+                     <h2 class="text-xl font-semibold text-white mb-2">Resumo para Ordem de Serviço</h2>
+                     <p class="text-xs text-gray-400 mb-2">O texto abaixo está formatado para o Discord. Copie e cole para ver o resultado final.</p>
+                     <div class="relative h-full">
+                        <textarea id="resumoDetalhado" rows="8" readonly class="form-input w-full h-full rounded-lg p-3 font-mono text-sm bg-gray-800/50 resize-none"></textarea>
+                        <button id="btnCopiar" onclick="copiarResumo()" class="absolute top-3 right-3 bg-gray-600 hover:bg-gray-500 text-white font-semibold py-1 px-3 rounded-md text-xs transition-colors">
+                            Copiar
+                        </button>
+                     </div>
+                </section>
+            </div>
+        </main>
+        <footer class="text-center mt-8 text-gray-500 text-sm">
+            <p>&copy; 2024 - Calculadora de Serviços. Todos os direitos reservados.</p>
+        </footer>
+    </div>
+
+<script>
+    // --- CONFIGURAÇÃO DOS SERVIÇOS ---
+    const servicosConfig = [
+        ['fullTuning', 'Full Tuning', '350000'], ['remap', 'Remap', '500000'], ['rastreador', 'Rastreador', '2000000'],
+        ['suspAr', 'Susp. a Ar', '1000000'], ['motor', 'Motor', ['20000', '40000', '80000', '100000']],
+        ['suspensao', 'Suspensão', ['20000', '40000', '80000', '100000', '100000']], ['freio', 'Freio', ['20000', '60000', '80000']],
+        ['transmissao', 'Transmissão', ['60000', '80000', '100000']], ['aerofolio', 'Aerofólio', '10000'], ['buzina', 'Buzina', '10000'],
+        ['capo', 'Capô', '10000'], ['escapamento', 'Escapamento', '10000'], ['grade', 'Grade', '10000'], ['neon', 'Neon', '25000'],
+        ['corNeon', 'Cor do Neon', '15000'], ['parachoqueD', 'Parachoque Dianteiro', '5000'], ['parachoqueT', 'Parachoque Traseiro', '5000'],
+        ['pelicula', 'Película', '5000'], ['pintura', 'Pintura', '10000'], ['perolado', 'Perolado', '10000'],
+        ['corPainel', 'Cor do Painel', '10000'], ['corRoda', 'Cor da Roda', '10000'], ['corInterior', 'Cor do Interior', '10000'],
+        ['turbo', 'Turbo', '50000'], ['blindagem', 'Blindagem', '600000'], ['blindagemPneu', 'Blindagem de Pneu', '900000'],
+        ['saiaLateral', 'Saia Lateral', '10000'], ['paralama', 'Paralama', '10000'], ['xenon', 'Xênon', '20000'], ['corXenon', 'Cor do Xênon', '20000']
+    ];
+
+    // --- VARIÁVEIS GLOBAIS ---
+    let descontoAtivo = false;
+
+    // --- INICIALIZAÇÃO DA APLICAÇÃO ---
+    window.onload = () => {
+        const loadingScreen = document.getElementById('loading-screen');
+        const appContainer = document.getElementById('app-container');
+        const progressBar = document.getElementById('progress-bar');
+        
+        // Inicia a animação da barra de progresso
+        setTimeout(() => { progressBar.style.width = '100%'; }, 100);
+
+        // Esconde a tela de carregamento e mostra a aplicação
+        setTimeout(() => {
+            loadingScreen.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            appContainer.classList.add('visible');
+        }, 2500); // Tempo total de carregamento
+
+        const container = document.getElementById('camposDinamicos');
+        gerarCamposDeServico(container);
+        vincularEventos();
+    };
+
+    /**
+     * Gera dinamicamente os campos de seleção para cada serviço.
+     */
+    function gerarCamposDeServico(container) {
+        servicosConfig.forEach(([id, label, valores]) => {
+            const div = document.createElement('div');
+            
+            const labelEl = document.createElement('label');
+            labelEl.setAttribute('for', id);
+            labelEl.textContent = label;
+            labelEl.className = 'block text-sm font-medium text-gray-300 mb-1';
+            div.appendChild(labelEl);
+
+            const select = document.createElement('select');
+            select.id = id;
+            select.className = 'form-select w-full rounded-lg p-2.5';
+
+            const defaultOption = document.createElement('option');
+            defaultOption.value = "0";
+            defaultOption.textContent = "Não selecionado";
+            select.appendChild(defaultOption);
+
+            if (Array.isArray(valores)) {
+                valores.forEach((v, i) => {
+                    const opt = document.createElement('option');
+                    opt.value = v;
+                    opt.textContent = `Nível ${i + 1} - ${formatarPreco(Number(v))}`;
+                    select.appendChild(opt);
+                });
+            } else {
+                const opt = document.createElement('option');
+                opt.value = valores;
+                opt.textContent = `Aplicar - ${formatarPreco(Number(valores))}`;
+                select.appendChild(opt);
+            }
+            
+            div.appendChild(select);
+            container.appendChild(div);
+        });
+    }
+
+    /**
+     * Vincula todos os eventos necessários aos elementos da página.
+     */
+    function vincularEventos() {
+        document.getElementById('btnDescontoParceiro').addEventListener('click', toggleDesconto);
+        document.getElementById('fullTuning').addEventListener('change', handleFullTuningChange);
+    }
+    
+    /**
+     * Lida com a mudança no campo 'Full Tuning'.
+     */
+    function handleFullTuningChange() {
+        const fullTuningValor = Number(document.getElementById('fullTuning').value);
+        const desabilitar = fullTuningValor > 0;
+        const idsParaDesabilitar = ['motor', 'suspensao', 'freio', 'transmissao', 'turbo'];
+        
+        idsParaDesabilitar.forEach(targetId => {
+            const campo = document.getElementById(targetId);
+            if (campo) {
+                campo.disabled = desabilitar;
+                if (desabilitar) {
+                    campo.value = "0";
+                    campo.classList.add('bg-gray-700', 'opacity-50', 'cursor-not-allowed');
+                } else {
+                    campo.classList.remove('bg-gray-700', 'opacity-50', 'cursor-not-allowed');
+                }
+            }
+        });
+    }
+    
+    /**
+     * Alterna o estado do desconto de parceiro.
+     */
+    function toggleDesconto() {
+        descontoAtivo = !descontoAtivo;
+        const btn = document.getElementById('btnDescontoParceiro');
+        btn.textContent = `Desconto Parceiro: ${descontoAtivo ? 'ON' : 'OFF'}`;
+        btn.classList.toggle('bg-emerald-600', descontoAtivo);
+        btn.classList.toggle('bg-gray-700', !descontoAtivo);
+        calcularEGerarResumo();
+    }
+
+    /**
+     * Formata um número para o padrão de moeda brasileiro (BRL).
+     */
+    function formatarPreco(valor) {
+        return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    /**
+     * Função principal que calcula os totais e atualiza a interface.
+     */
+    function calcularEGerarResumo() {
+        let total = servicosConfig.reduce((acc, [id]) => {
+            const el = document.getElementById(id);
+            return acc + (el ? Number(el.value) : 0);
+        }, 0);
+
+        const descontoAplicado = descontoAtivo;
+        if (descontoAplicado) {
+            total *= 0.9;
+        }
+
+        const valorMec = total * 0.2;
+
+        document.getElementById('total').textContent = formatarPreco(total);
+        document.getElementById('valorMecanica').textContent = formatarPreco(valorMec);
+        gerarTextoResumo(total, valorMec, descontoAplicado);
+    }
+
+    /**
+     * Gera o texto detalhado do resumo do serviço.
+     */
+    function gerarTextoResumo(totalFinal, valorMecanicaFinal, descontoAplicado) {
+        const nome = document.getElementById('nomeMecanico').value.trim();
+        const passaporte = document.getElementById('passaporteMecanico').value.trim();
+        const empresa = document.getElementById('empresaParceira').value.trim();
+
+        let resumo = `**ORDEM DE SERVIÇO**\n\n`;
+        resumo += `🧑‍🔧 **Mecânico:** ${nome || '[Não informado]'}\n`;
+        resumo += `🆔 **Passaporte:** ${passaporte || '[Não informado]'}\n`;
+        if (empresa) {
+            resumo += `🏢 **Empresa Parceira:** ${empresa}\n`;
+        }
+        resumo += `--------------------------------\n`;
+        resumo += `**SERVIÇOS REALIZADOS:**\n`;
+        
+        let servicosPrestados = 0;
+        servicosConfig.forEach(([id, label]) => {
+            const el = document.getElementById(id);
+            if (el && Number(el.value) > 0) {
+                const valor = Number(el.value);
+                const selectedIndex = el.selectedIndex;
+                const optionText = el.options[selectedIndex].text.split(' - ')[0];
+                resumo += ` • ${label} (${optionText}): ${formatarPreco(valor)}\n`;
+                servicosPrestados++;
+            }
+        });
+
+        if(servicosPrestados === 0){
+            resumo += `Nenhum serviço selecionado.\n`;
+        }
+
+        resumo += `--------------------------------\n`;
+        if (descontoAplicado) {
+            resumo += `✅ **Desconto de Parceiro (10%) aplicado!**\n\n`;
+        }
+        resumo += `💰 **TOTAL CLIENTE:** ${formatarPreco(totalFinal)}\n`;
+        resumo += `📥 **VALOR MECÂNICA (20%):** ${formatarPreco(valorMecanicaFinal)}\n\n`;
+        resumo += `*Gerado em: ${new Date().toLocaleString('pt-BR')}*`;
+
+        document.getElementById('resumoDetalhado').value = resumo;
+    }
+    
+    /**
+     * Copia o conteúdo do resumo para a área de transferência de forma robusta.
+     */
+    function copiarResumo() {
+        const resumoTexto = document.getElementById('resumoDetalhado').value;
+        const btnCopiar = document.getElementById('btnCopiar');
+
+        if (!resumoTexto || resumoTexto.includes('Nenhum serviço selecionado')) {
+            btnCopiar.textContent = 'Vazio!';
+            setTimeout(() => { btnCopiar.textContent = 'Copiar'; }, 2000);
+            return;
+        }
+
+        // Cria um textarea temporário para usar o comando de cópia
+        const textareaTemp = document.createElement('textarea');
+        textareaTemp.value = resumoTexto;
+        textareaTemp.style.position = 'absolute';
+        textareaTemp.style.left = '-9999px'; // Esconde o elemento fora da tela
+        document.body.appendChild(textareaTemp);
+        
+        try {
+            textareaTemp.select();
+            document.execCommand('copy'); // Comando de cópia
+            
+            // Feedback visual de sucesso
+            btnCopiar.textContent = 'Copiado!';
+            btnCopiar.classList.add('bg-emerald-600');
+            setTimeout(() => {
+                btnCopiar.textContent = 'Copiar';
+                btnCopiar.classList.remove('bg-emerald-600');
+            }, 2000);
+
+        } catch (err) {
+            // Feedback visual de erro
+            btnCopiar.textContent = 'Erro!';
+            console.error('Falha ao copiar texto: ', err);
+            setTimeout(() => { btnCopiar.textContent = 'Copiar'; }, 2000);
+        } finally {
+            // Remove o textarea temporário
+            document.body.removeChild(textareaTemp);
+        }
+    }
+</script>
+
+</body>
+</html>
