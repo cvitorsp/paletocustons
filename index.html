@@ -17,17 +17,13 @@
         /* Estilização base e fundo gradiente animado */
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(-45deg, #020617, #111827, #030712, #1e293b);
-            background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite;
+            background-color: #020617;
+            background-image: 
+                radial-gradient(at 27% 37%, hsla(215, 98%, 61%, 0.1) 0px, transparent 50%),
+                radial-gradient(at 97% 21%, hsla(162, 73%, 43%, 0.1) 0px, transparent 50%),
+                radial-gradient(at 75% 88%, hsla(240, 70%, 60%, 0.1) 0px, transparent 50%);
             color: #e5e7eb;
             overflow: hidden;
-        }
-
-        @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
         }
         
         /* Estilização dos campos de formulário */
@@ -201,32 +197,25 @@
                 </button>
             </section>
 
-            <!-- Resultados e Resumo -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-                <section id="resultados" class="bg-gray-800/50 p-6 rounded-xl border border-gray-700">
-                    <h2 class="text-xl font-semibold text-white mb-4">Resultados</h2>
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-300">Total para o Cliente:</span>
-                            <span id="total" class="text-2xl font-bold text-emerald-400">R$ 0,00</span>
-                        </div>
-                        <div class="flex justify-between items-center border-t border-gray-600 pt-4 mt-4">
-                            <span class="text-gray-300">Valor para a Mecânica (20%):</span>
-                            <span id="valorMecanica" class="text-xl font-semibold text-amber-400">R$ 0,00</span>
-                        </div>
-                    </div>
-                </section>
-                <section id="resumo">
-                     <h2 class="text-xl font-semibold text-white mb-2">Resumo para Ordem de Serviço</h2>
-                     <p class="text-xs text-gray-400 mb-2">O texto abaixo está formatado para o Discord. Copie e cole para ver o resultado final.</p>
-                     <div class="relative h-full">
-                        <textarea id="resumoDetalhado" rows="8" readonly class="form-input w-full h-full rounded-lg p-3 font-mono text-sm bg-gray-800/50 resize-none"></textarea>
-                        <button id="btnCopiar" onclick="copiarResumo()" class="absolute top-3 right-3 bg-gray-600 hover:bg-gray-500 text-white font-semibold py-1 px-3 rounded-md text-xs transition-colors">
-                            Copiar
-                        </button>
-                     </div>
-                </section>
-            </div>
+            <!-- Resultado Total -->
+            <section id="resultados" class="mt-8 bg-gray-800/50 p-6 rounded-xl border border-gray-700">
+                <div class="flex justify-between items-center">
+                    <span class="text-lg text-gray-300">Total para o Cliente:</span>
+                    <span id="total" class="text-3xl font-bold text-emerald-400">R$ 0,00</span>
+                </div>
+            </section>
+
+            <!-- Resumo -->
+            <section id="resumo" class="mt-8">
+                 <h2 class="text-xl font-semibold text-white mb-2">Resumo para Ordem de Serviço</h2>
+                 <p class="text-xs text-gray-400 mb-2">O texto abaixo está formatado para o Discord. Copie e cole para ver o resultado final.</p>
+                 <div class="relative">
+                    <textarea id="resumoDetalhado" rows="8" readonly class="form-input w-full rounded-lg p-3 font-mono text-sm bg-gray-800/50 resize-none"></textarea>
+                    <button id="btnCopiar" onclick="copiarResumo()" class="absolute top-4 right-3 bg-gray-600 hover:bg-gray-500 text-white font-semibold py-1 px-3 rounded-md text-xs transition-colors">
+                        Copiar
+                    </button>
+                 </div>
+            </section>
         </main>
         <footer class="text-center mt-8 text-gray-500 text-sm">
             <p>&copy; 2024 - Calculadora de Serviços. Todos os direitos reservados.</p>
@@ -376,17 +365,14 @@
             total *= 0.9;
         }
 
-        const valorMec = total * 0.2;
-
         document.getElementById('total').textContent = formatarPreco(total);
-        document.getElementById('valorMecanica').textContent = formatarPreco(valorMec);
-        gerarTextoResumo(total, valorMec, descontoAplicado);
+        gerarTextoResumo(total, descontoAplicado);
     }
 
     /**
      * Gera o texto detalhado do resumo do serviço.
      */
-    function gerarTextoResumo(totalFinal, valorMecanicaFinal, descontoAplicado) {
+    function gerarTextoResumo(totalFinal, descontoAplicado) {
         const nome = document.getElementById('nomeMecanico').value.trim();
         const passaporte = document.getElementById('passaporteMecanico').value.trim();
         const empresa = document.getElementById('empresaParceira').value.trim();
@@ -420,8 +406,7 @@
         if (descontoAplicado) {
             resumo += `✅ **Desconto de Parceiro (10%) aplicado!**\n\n`;
         }
-        resumo += `💰 **TOTAL CLIENTE:** ${formatarPreco(totalFinal)}\n`;
-        resumo += `📥 **VALOR MECÂNICA (20%):** ${formatarPreco(valorMecanicaFinal)}\n\n`;
+        resumo += `💰 **TOTAL CLIENTE:** ${formatarPreco(totalFinal)}\n\n`;
         resumo += `*Gerado em: ${new Date().toLocaleString('pt-BR')}*`;
 
         document.getElementById('resumoDetalhado').value = resumo;
